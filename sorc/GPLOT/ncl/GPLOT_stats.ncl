@@ -710,8 +710,8 @@ if(dimsizes(tmp).ge.4)then
 else
 	TC_NAME := "MISSING"
 end if
-TC_NUM	:= tostring(tmp(dimsizes(tmp)-3:dimsizes(tmp)-2))
-BASIN1	:= tostring(tmp(dimsizes(tmp)-1))
+TC_NUM  := tostring(tmp(dimsizes(tmp)-3:dimsizes(tmp)-2))
+BASIN1  := tostring(tmp(dimsizes(tmp)-1))
 if(BASIN1.eq."l")then   BASIN2 = "al"   end if
 if(BASIN1.eq."e")then   BASIN2 = "ep"   end if
 if(BASIN1.eq."c")then   BASIN2 = "cp"   end if
@@ -1032,7 +1032,11 @@ if(MCODEI.ne."MISSING" .and. MCODE12.ne."MISSING")then
 	system("sed -i 's/BBBB/"+MCODE12+"/g' "+INTERP_DIR+"/"+INTERP_NML)
 	system("sed -i 's/CCCC/"+MCODEI+"/g' "+INTERP_DIR+"/"+INTERP_NML)
 	system("sed -i 's/DDD/006/g' "+INTERP_DIR+"/"+INTERP_NML)
-	system("sed -i 's/EEE/036/g' "+INTERP_DIR+"/"+INTERP_NML)
+	if(DSOURCE.eq."HAFS")then
+		system("sed -i 's/EEE/036/g' "+INTERP_DIR+"/"+INTERP_NML)
+	else
+		system("sed -i 's/EEE/"+sprinti("%0.3i",FNL_HR)+"/g' "+INTERP_DIR+"/"+INTERP_NML)
+	end if
 	
 
 	; Run the interpolation executable to produce early forecasts.
@@ -1312,6 +1316,9 @@ if(DO_LT_TREND)then
 						DO_LT_TREND = False
 		end if
 	end do
+
+	if(all(ismissing(aTRK2)) .and. all(ismissing(aTRK3)))   DO_LT_TREND = False   end if
+
 end if
 
 
@@ -1415,6 +1422,8 @@ if(DO_LI_TREND)then
 	end do
 	aINT2(:,:,0,:) = where(aINT2(:,:,0,:).le.0, aINT2@_FillValue, aINT2(:,:,0,:))
 	aINT3(:,:,0,:) = where(aINT3(:,:,0,:).le.0, aINT3@_FillValue, aINT3(:,:,0,:))
+
+	if(all(ismissing(aINT2)) .and. all(ismissing(aINT2)))then   DO_LI_TREND = False   end if
 end if
 
 
@@ -1472,7 +1481,7 @@ end if
 
 
 
-;================================================================
+ ;================================================================
 ; Read BDECK data.
 ;================================================================
 
@@ -2593,7 +2602,7 @@ if(DO_LI_GUIDE)then
 			; Add legend info for each model
 			if(DO_MARKERS)then
 				mkres2@gsMarkerColor := INTcolors(ppp2)
-				mkres2@gsMarkerIndex := INTmarkers(ppp3)
+				mkres2@gsMarkerIndex := INTmarkers(ppp2)
 				gsn_polymarker_ndc(wks,vpLFT+(tofloat(ppp3%4)*0.25*vpWID)+0.02,vpTOP+vpHEAD-0.02*tofloat(ppp3/4),mkres2)
 			end if
 			gsn_polyline_ndc(wks,(/vpLFT+(tofloat(ppp3%4)*0.25*vpWID),vpLFT+(tofloat(ppp3%4)*0.25*vpWID)+0.04/),\
@@ -2791,7 +2800,7 @@ if(DO_EI_GUIDE)then
 	
 			plres2@gsLineColor   := INTcolorsI(ppp2)
 			txres4@txFontColor   := INTcolorsI(ppp2)
-	
+
 			; Overlay the new intensity line
 			overlay(plot,gsn_csm_xy(wks,aINTI(ppp2,1,vals),aINTI(ppp2,0,vals),xyres2b))
 
@@ -3274,7 +3283,7 @@ if(DO_LT_TREND)then
 					tmp	:= toint(where(ismissing(aTRK2(mmm,ttt,2,:)), fval2, aTRK2(mmm,ttt,2,:)))
 					vals	:= ind(tmp%6.eq.0)
 					vals2	:= ind(tmp%12.eq.0)
-					;vals3	:= vals2(ind(.not.ismissing(aTRK2(mmm,ttt,0,vals2))))
+					if(ismissing(vals2(0)))then  vals2 := ind((tmp+6)%12.eq.0)  end if	;; extra step in case lead times are 6,18,30,42,...
 					if(ismissing(vals2(0)) .or. ismissing(vals(0)))then   continue   end if
 					if(dimsizes(vals).eq.1)then   continue   end if
 					vals3	:= vals2(ind(.not.ismissing(aTRK2(mmm,ttt,0,vals2))))

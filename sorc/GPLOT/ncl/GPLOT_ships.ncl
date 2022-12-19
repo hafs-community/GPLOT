@@ -284,6 +284,11 @@ else			wtype2 = wtype
 end if
 
 
+; 12. Determine the extension of post-processed graphics.
+if(DO_CONVERTGIF)then	wtype2 = "gif"
+else			wtype2 = wtype
+end if
+
 
 
 ;================================================================
@@ -838,8 +843,8 @@ do fff = 0,nFiles-1
 		res@tiMainFontHeightF	= 0.025
 		res@tiMainOffsetYF	= 0.05
 		res@tiXAxisString	= "Forecast Time [h]"
-		res@tiXAxisOffsetYF	= 0.015
-		res@tiYAxisOffsetXF	= 0.015
+		res@tiXAxisOffsetYF	= 0.00
+		res@tiYAxisOffsetXF	= 0.00
 		res@tmXBMode		= "Explicit"	
 		res@tmXTOn		= False
 		res@tmYLMode		= "Explicit"	
@@ -1039,7 +1044,7 @@ do fff = 0,nFiles-1
 			; 8) Write data to table (if applicable)	
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %8.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1111,7 +1116,7 @@ do fff = 0,nFiles-1
 			; 9) Write data to table (if applicable)	
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %8.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 				
@@ -1125,17 +1130,15 @@ do fff = 0,nFiles-1
 			if(fileexists(DAT_FILE2))then
 				NL	:= dimsizes(asciiread(DAT_FILE2,-1,"string"))
 				data	:= asciiread(DAT_FILE2,(/NL,NCOL/),"float")
-				if(.not.FORCE .and. any(toint(data(:,0)).eq.FHR(fff)))then
-					W = "NO"
-				else
-					W = "a"
+				if(.not.FORCE .and. any(toint(data(:,0)).eq.FHR(fff)))then	W = "NO"
+				else								W = "a"
 				end if
 			end if
 			data	:= new((/1,2/),"float")
 			data(0,:)= (/tofloat(FHR(fff)), V2/)
 			if(W.ne."NO")then	print("MSG: Printing values for: SDDC")
 						write_table(DAT_FILE2,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %8.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE2+" > "+DAT_FILE2+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE2+" | sort -u > "+DAT_FILE2+".TMP")
 						system("mv "+DAT_FILE2+".TMP "+DAT_FILE2)
 			end if
 			
@@ -1194,7 +1197,7 @@ do fff = 0,nFiles-1
 			; 4) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %10.3f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1270,7 +1273,7 @@ do fff = 0,nFiles-1
 			; 4) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i%8.3f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1335,7 +1338,7 @@ do fff = 0,nFiles-1
 			; 4) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1377,7 +1380,7 @@ do fff = 0,nFiles-1
 			; 9) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1436,7 +1439,7 @@ do fff = 0,nFiles-1
 			; 8) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1482,7 +1485,7 @@ do fff = 0,nFiles-1
 			; 6) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1532,7 +1535,7 @@ do fff = 0,nFiles-1
 			; 7) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1609,7 +1612,7 @@ do fff = 0,nFiles-1
 			; 6) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 			end if
 			
@@ -1653,7 +1656,7 @@ do fff = 0,nFiles-1
 			; 9) Write data block to .DAT file
 			if(W.ne."NO")then	print("MSG: Printing values for: "+FNAME(ppp))
 						write_table(DAT_FILE,W,[/toint(data(:,0)), data(:,1)/], "%0.3i  %9.2f")
-						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" > "+DAT_FILE+".TMP")
+						system("awk '{a[$1]++}!(a[$1]-1)' "+DAT_FILE+" | sort -u > "+DAT_FILE+".TMP")
 						system("mv "+DAT_FILE+".TMP "+DAT_FILE)
 						
 			end if
@@ -2587,13 +2590,15 @@ do fff = 0,nFiles-1
 				if(fileexists(DAT_FILE2))then
 					NL	:= dimsizes(asciiread(DAT_FILE2,-1,"string"))
 					data	:= asciiread(DAT_FILE2,(/NL,2/),"float")
-					FHR2(iii,:NL-1)	= data(:,0)+tofloat(ddd)
-					Vp(iii,:NL-1)	= data(:,1)
+					vals := dim_pqsort_n(data(:,0),1,0)
+					FHR2(iii,:NL-1)	= data(vals,0)+tofloat(ddd)
+					Vp(iii,:NL-1)	= data(vals,1)
 				else if(fileexists(DAT_FILE3))then
 					NL	:= dimsizes(asciiread(DAT_FILE3,-1,"string"))
 					data	:= asciiread(DAT_FILE3,(/NL,2/),"float")
-					FHR2(iii,:NL-1)	= data(:,0)+tofloat(ddd)
-					Vp(iii,:NL-1)	= data(:,1)
+					vals := dim_pqsort_n(data(:,0),1,0)
+					FHR2(iii,:NL-1)	= data(vals,0)+tofloat(ddd)
+					Vp(iii,:NL-1)	= data(vals,1)
 				end if  end if
 						
 				iii=iii+1
@@ -2655,7 +2660,7 @@ do fff = 0,nFiles-1
 				end if
 
 			end if  end if
-			myHrs	:= ispan(-24,FNL_HR,12)
+			myHrs	:= ispan(-24,toint(max(FHR2)),12)
 	
 			; Set up the output file
 			OFILE	= ODIR+str_lower(LONGSID)+"."+FNAME(ppp)+"."+IDATE+"."+DOMAIN

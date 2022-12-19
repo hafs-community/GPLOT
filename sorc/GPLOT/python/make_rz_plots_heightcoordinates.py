@@ -27,8 +27,50 @@ import subprocess
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-##############################
-def main():
+#Get command lines arguments
+if len(sys.argv) < 11:
+	print("ERROR: Expected 11 command line arguments. Got "+str(len(sys.argv)))
+	sys.exit()
+IDATE = sys.argv[1]
+if IDATE == 'MISSING':
+	IDATE = ''
+SID = sys.argv[2]
+if SID == 'MISSING':
+	SID = ''
+DOMAIN = sys.argv[3]
+if DOMAIN == 'MISSING':
+	DOMAIN = ''
+TIER = sys.argv[4]
+if TIER == 'MISSING':
+	TIER = ''
+ENSID = sys.argv[5]
+if ENSID == 'MISSING':
+	ENSID = ''
+FORCE = sys.argv[6]
+if FORCE == 'MISSING':
+	FORCE = ''
+RESOLUTION = sys.argv[7]
+if RESOLUTION == 'MISSING':
+	RESOLUTION = ''
+RMAX = sys.argv[8]
+if RMAX == 'MISSING':
+	RMAX = ''
+LEVS = sys.argv[9]
+if LEVS == 'MISSING':
+	LEVS = ''
+NMLIST = sys.argv[10]
+if NMLIST == 'MISSING':
+	print("ERROR: Master Namelist can't be MISSING.")
+	sys.exit()
+NMLDIR = GPLOT_DIR+'/parm'
+if os.path.exists(NMLIST):
+	MASTER_NML_IN = NMLIST
+elif os.path.exists(GPLOT_DIR+'/parm/'+NMLIST):
+	MASTER_NML_IN = NML_DIR+'/'+NMLIST
+else:
+	print("ERROR: I couldn't find the Master Namelist.")
+	sys.exit()
+PYTHONDIR = GPLOT_DIR+'/sorc/GPLOT/python'
 
 	#Define Pygrads interface
 	ga = Grads(verbose=False)
@@ -85,14 +127,17 @@ def main():
 	DSOURCE = subprocess.run(['grep','^DSOURCE',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1]
 	EXPT = subprocess.run(['grep','^EXPT',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1]
 	ODIR = subprocess.run(['grep','^ODIR =',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1].strip()
+	BASEDIR = ODIR
 	try:
 		ODIR_TYPE = int(subprocess.run(['grep','^ODIR_TYPE',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1])
 	except:
 		ODIR_TYPE = 0
 	if ODIR_TYPE == 1:
 		ODIR = ODIR+'/polar/'
+		BASEDIR = BASEDIR+'/'
 	else:
 		ODIR = ODIR+'/'+EXPT.strip()+'/'+IDATE.strip()+'/polar/'
+		BASEDIR = BASEDIR+'/'+EXPT.strip()+'/'+IDATE.strip()+'/'
 	
 	try:
 		DO_CONVERTGIF = subprocess.run(['grep','^DO_CONVERTGIF',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1].strip();
@@ -103,7 +148,7 @@ def main():
 	figext = '.png';
 	
 	# Create the temporary directory for GrADs files
-	TMPDIR = ODIR.strip()+'grads/'
+	TMPDIR = BASEDIR.strip()+'grads/'
 	if not os.path.exists(TMPDIR):
 		os.mkdir(TMPDIR)
 	

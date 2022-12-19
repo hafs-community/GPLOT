@@ -24,53 +24,156 @@ import cmath
 import subprocess
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+#Get command lines arguments
+if len(sys.argv) < 11:
+	print("ERROR: Expected 11 command line arguments. Got "+str(len(sys.argv)))
+	sys.exit()
+IDATE = sys.argv[1]
+if IDATE == 'MISSING':
+	IDATE = ''
+SID = sys.argv[2]
+if SID == 'MISSING':
+	SID = ''
+DOMAIN = sys.argv[3]
+if DOMAIN == 'MISSING':
+	DOMAIN = ''
+TIER = sys.argv[4]
+if TIER == 'MISSING':
+	TIER = ''
+ENSID = sys.argv[5]
+if ENSID == 'MISSING':
+	ENSID = ''
+FORCE = sys.argv[6]
+if FORCE == 'MISSING':
+	FORCE = ''
+RESOLUTION = sys.argv[7]
+if RESOLUTION == 'MISSING':
+	RESOLUTION = ''
+RMAX = sys.argv[8]
+if RMAX == 'MISSING':
+	RMAX = ''
+LEVS = sys.argv[9]
+if LEVS == 'MISSING':
+	LEVS = ''
+NMLIST = sys.argv[10]
+if NMLIST == 'MISSING':
+	print("ERROR: Master Namelist can't be MISSING.")
+	sys.exit()
+NMLDIR = GPLOT_DIR+'/parm'
+if os.path.exists(NMLIST):
+	MASTER_NML_IN = NMLIST
+elif os.path.exists(GPLOT_DIR+'/parm/'+NMLIST):
+	MASTER_NML_IN = NML_DIR+'/'+NMLIST
+else:
+	print("ERROR: I couldn't find the Master Namelist.")
+	sys.exit()
+PYTHONDIR = GPLOT_DIR+'/sorc/GPLOT/python'
 
-##############################
-def main():
 
-	#Define Pygrads interface
-	ga = Grads(verbose=False)
-	
-	#Get command lines arguments
-	if len(sys.argv) < 11:
-		print("ERROR: Expected 11 command line arguments. Got "+str(len(sys.argv)))
-		sys.exit()
-	IDATE = sys.argv[1]
-	if IDATE == 'MISSING':
-		IDATE = ''
-	SID = sys.argv[2]
-	if SID == 'MISSING':
-		SID = ''
-	DOMAIN = sys.argv[3]
-	if DOMAIN == 'MISSING':
-		DOMAIN = ''
-	TIER = sys.argv[4]
-	if TIER == 'MISSING':
-		TIER = ''
-	ENSID = sys.argv[5]
-	if ENSID == 'MISSING':
-		ENSID = ''
-	FORCE = sys.argv[6]
-	if FORCE == 'MISSING':
-		FORCE = ''
-	RESOLUTION = sys.argv[7]
-	if RESOLUTION == 'MISSING':
-		RESOLUTION = ''
-	RMAX = sys.argv[8]
-	if RMAX == 'MISSING':
-		RMAX = ''
-	LEVS = sys.argv[9]
-	if LEVS == 'MISSING':
-		LEVS = ''
-	NMLIST = sys.argv[10]
-	if NMLIST == 'MISSING':
-		print("ERROR: Master Namelist can't be MISSING.")
-		sys.exit()
-	NMLDIR = GPLOT_DIR+'/parm'
-	if os.path.exists(NMLIST):
-		MASTER_NML_IN = NMLIST
-	elif os.path.exists(GPLOT_DIR+'/parm/'+NMLIST):
-		MASTER_NML_IN = NML_DIR+'/'+NMLIST
+# Read the master namelist
+DSOURCE = subprocess.run(['grep','^DSOURCE',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1]
+EXPT = subprocess.run(['grep','^EXPT',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1]
+ODIR = subprocess.run(['grep','^ODIR',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1].strip()
+BASEDIR = ODIR
+try:
+	ODIR_TYPE = np.int(subprocess.run(['grep','^ODIR_TYPE',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1])
+except:
+	ODIR_TYPE = 0
+if ODIR_TYPE == 1:
+	ODIR = ODIR+'/polar/'
+	BASEDIR = BASEDIR+'/'
+else:
+	ODIR = ODIR+'/'+EXPT.strip()+'/'+IDATE.strip()+'/polar/'
+	BASEDIR = BASEDIR+'/'+EXPT.strip()+'/'+IDATE.strip()+'/'
+
+try:
+	DO_CONVERTGIF = subprocess.run(['grep','^DO_CONVERTGIF',MASTER_NML_IN], stdout=subprocess.PIPE).stdout.decode('utf-8').split(" = ")[1].strip();
+	DO_CONVERTGIF = (DO_CONVERTGIF == 'True');
+except:
+	DO_CONVERTGIF = False;
+
+figext = '.png';
+
+# Create the temporary directory for GrADs files
+TMPDIR = BASEDIR.strip()+'grads/'
+if not os.path.exists(TMPDIR):
+	os.mkdir(TMPDIR)
+
+# Define some important file names
+UNPLOTTED_FILE = ODIR.strip()+'UnplottedFiles.'+DOMAIN.strip()+'.'+TIER.strip()+'.'+SID.strip()+'.log'
+PLOTTED_FILE = ODIR.strip()+'PlottedFiles.'+DOMAIN.strip()+'.'+TIER.strip()+'.'+SID.strip()+'.log'
+ALLFHR_FILE = ODIR.strip()+'AllForecastHours.'+DOMAIN.strip()+'.'+TIER.strip()+'.'+SID.strip()+'.log'
+STATUS_FILE = ODIR.strip()+'status.'+DOMAIN.strip()+'.'+TIER.strip()+'.'+SID.strip()+'.log'
+ST_LOCK_FILE = ODIR.strip()+'status.'+DOMAIN.strip()+'.'+TIER.strip()+'.'+SID.strip()+'.log.lock'
+ATCF_FILE = ODIR.strip()+'ATCF_FILES.dat'
+
+
+#Get parameters from input file
+resolution = np.float(RESOLUTION)
+rmax = np.float(RMAX)
+zsize = np.int(LEVS)
+
+# Get the ATCF file.
+ATCF_LIST = np.genfromtxt(ODIR+'ATCF_FILES.dat',dtype='str')
+if ATCF_LIST.size > 1:
+	print('Found multiple ATCFs')
+	ATCF = ATCF_LIST[[i for i, s in enumerate(ATCF_LIST) if str(SID+'.').lower() in s][:]][0]
+else:
+	ATCF = ATCF_LIST
+print('MSG: Found this ATCF --> '+str(ATCF))
+LONGSID = str(ATCF).split('/')[-1].split('.')[0]
+#print('MSG: Running with this long Storm ID --> '+LONGSID.strip())
+TCNAME = LONGSID[::-1]
+TCNAME = TCNAME[3:]
+TCNAME = TCNAME[::-1]
+SNUM = LONGSID[::-1]
+SNUM = SNUM[1:3]
+SNUM = SNUM[::-1]
+BASINID = LONGSID[::-1]
+BASINID = BASINID[0]
+ATCF_DATA = np.atleast_2d(np.genfromtxt(str(ATCF),delimiter=',',dtype='str',autostrip='true'))
+ATCF_DATA = ATCF_DATA[list([i for i, s in enumerate(ATCF_DATA[:,11]) if '34' in s][:]),:]
+
+
+# Get the list of unplotted files
+UNPLOTTED_LIST = np.array( np.genfromtxt(UNPLOTTED_FILE,dtype='str') )
+
+# Get the list of forecast lead time in hours
+FHR_LIST = np.array( np.genfromtxt(ALLFHR_FILE,dtype='int') )
+if (FHR_LIST.size == 1):
+	FHR_LIST = np.append(FHR_LIST,"999")
+	UNPLOTTED_LIST = np.append(UNPLOTTED_LIST,"MISSING")
+
+# Define executables
+X_G2CTL = GPLOT_DIR+'/sorc/GPLOT/grads/g2ctl.pl'
+
+for (FILE,fff) in zip(UNPLOTTED_LIST,np.array(range(UNPLOTTED_LIST.size))):
+
+	if (FILE == 'MISSING'):  continue
+
+	print('MSG: Working on this file --> '+str(FILE)+'  '+str(fff))
+
+	os.system('lockfile -r-1 -l 180 '+ST_LOCK_FILE)
+	os.system('echo "working" > '+STATUS_FILE)
+	os.system('rm -f '+ST_LOCK_FILE)
+
+	# Get some useful information about the file name
+	FILE_BASE = os.path.basename(FILE)
+	FILE_DIR = os.path.dirname(FILE)
+
+	# Find the index of the forecast lead time in the ATCF file.
+	FHR = int(FHR_LIST[fff])
+	FHRIND = [i for i, s in enumerate(ATCF_DATA[:,5]) if int(s)==FHR]
+
+	# Get coordinate information from ATCF
+	lonstr = ATCF_DATA[list(FHRIND),7][0]
+	lonstr1 = lonstr[::-1]
+	lonstr1 = lonstr1[1:]
+	lonstr1 = lonstr1[::-1]
+	lonstr2 = lonstr[::-1]
+	lonstr2 = lonstr2[0]
+	if (lonstr2 == 'W'):
+		centerlon = 360-float(lonstr1)/10
 	else:
 		print("ERROR: I couldn't find the Master Namelist.")
 		sys.exit()
@@ -101,7 +204,7 @@ def main():
 	figext = '.png';
 	
 	# Create the temporary directory for GrADs files
-	TMPDIR = ODIR.strip()+'grads/'
+	TMPDIR = BASEDIR.strip()+'grads/'
 	if not os.path.exists(TMPDIR):
 		os.mkdir(TMPDIR)
 	
